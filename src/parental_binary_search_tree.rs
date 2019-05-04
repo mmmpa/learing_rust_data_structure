@@ -1,37 +1,34 @@
 use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use std::cell::RefCell;
+use core::borrow::BorrowMut;
 
-type Node<K, V> = Option<Rc<RefCell<NodeBody<K, V>>>>;
-type Traced<K, V> = Rc<RefCell<NodeBody<K, V>>>;
+type Node<T> = Option<Rc<RefCell<NodeBody<T>>>>;
+type Traced<T> = Rc<RefCell<NodeBody<T>>>;
 
 #[derive(Debug)]
-pub struct ParentalBinarySearchTree<K: Ord + Debug, V: Debug> {
-    root: Node<K, V>,
+struct BinarySearchTree<T: Ord + Debug> {
+    root: Node<T>,
     length: u32,
 }
 
-struct NodeBody<K: Ord + Debug, V: Debug> {
-    k: K,
-    v: V,
-    p: Node<K, V>,
-    left: Node<K, V>,
-    right: Node<K, V>,
+struct NodeBody<T: Ord + Debug> {
+    value: T,
+    parent: Node<T>,
+    left: Node<T>,
+    right: Node<T>,
 }
 
-impl<K: Ord + Debug, V: Debug> NodeBody<K, V> {
-    fn new(p: Node<K, V>, k: K, v: V) -> Node<K, V> {
-        Some(Rc::new(RefCell::new(Self { k, v, p, left: None, right: None })))
+impl<T: Ord + Debug> NodeBody<T> {
+    fn new(value: T, parent: Node<T>) -> Node<T> {
+        Some(Rc::new(RefCell::new(Self { value, parent, left: None, right: None })))
     }
 }
 
-impl<K: Ord + Debug, V: Debug> Debug for NodeBody<K, V> {
+impl<T: Ord + Debug> Debug for NodeBody<T> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        let mut s = format!("Tree {{ k: {:?}, v: {:?}", self.k, self.v);
+        let mut s = format!("Tree {{ v: {:?}", self.value);
 
-        if let Some(p) = &self.p {
-            s.push_str(&format!(", p: {:?}", p.as_ref().borrow().k));
-        }
         if let Some(_) = self.left {
             s.push_str(&format!(", left: {:?}", self.left));
         }
@@ -46,7 +43,7 @@ impl<K: Ord + Debug, V: Debug> Debug for NodeBody<K, V> {
 }
 
 
-impl<K: Ord + Debug, V: Debug> ParentalBinarySearchTree<K, V> {
+impl<T: Ord + Debug> BinarySearchTree<T> {
     pub fn new() -> Self {
         Self {
             root: None,
@@ -54,23 +51,23 @@ impl<K: Ord + Debug, V: Debug> ParentalBinarySearchTree<K, V> {
         }
     }
 
-    pub fn insert(&mut self, k: K, v: V) {
+    pub fn insert(&mut self, v: T) {
         let root = self.root.take();
         self.length += 1;
-        self.root = self.insert_support(root, None, k, v);
+        self.root = self.insert_support(root, v, None);
     }
 
-    fn insert_support(&mut self, root: Node<K, V>, p: Node<K, V>, k: K, v: V) -> Node<K, V> {
+    fn insert_support(&mut self, root: Node<T>, v: T, p: Node<T>) -> Node<T> {
         match root {
-            None => NodeBody::new(p, k, v),
-            Some(node) => {
+            None => NodeBody::new(v, p),
+            Some(mut node) => {
                 {
                     let p = Some(node.clone());
                     let mut inner = node.as_ref().borrow_mut();
-                    if k < inner.k {
-                        inner.left = self.insert_support(inner.left.take(), p, k, v);
+                    if v < inner.value {
+                        inner.left = self.insert_support(inner.left.take(), v, p);
                     } else {
-                        inner.right = self.insert_support(inner.right.take(), p, k, v);
+                        inner.right = self.insert_support(inner.right.take(), v, p);
                     }
                 }
                 Some(node)
@@ -78,13 +75,13 @@ impl<K: Ord + Debug, V: Debug> ParentalBinarySearchTree<K, V> {
         }
     }
 
-    fn trace(&self) -> Vec<Traced<K, V>> {
+    fn trace(&self) -> Vec<Traced<T>> {
         let mut v = vec![];
         self.trace_support(&self.root, &mut v);
         v
     }
 
-    fn trace_support(&self, root: &Node<K, V>, result: &mut Vec<Traced<K, V>>) {
+    fn trace_support(&self, root: &Node<T>, result: &mut Vec<Traced<T>>) {
         match root {
             None => (),
             Some(node) => {
@@ -100,13 +97,13 @@ impl<K: Ord + Debug, V: Debug> ParentalBinarySearchTree<K, V> {
 
 #[test]
 fn test_insert() {
-    let mut t = ParentalBinarySearchTree::new();
+    let mut t = BinarySearchTree::new();
 
-    t.insert(11, 11);
-    t.insert(21, 21);
-    t.insert(1, 1);
-    t.insert(22, 22);
-    t.insert(23, 23);
+    t.insert(11);
+    t.insert(21);
+    t.insert(1);
+    t.insert(22);
+    t.insert(23);
 
-    println!("{:?}", t.trace().iter().map(|n| n.as_ref().borrow().k).collect::<Vec<u32>>());
+    println!("{:?}", t.trace().iter().map(|n| n.as_ref().borrow().value).collect::<Vec<u32>>());
 }

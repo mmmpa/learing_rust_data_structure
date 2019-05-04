@@ -12,21 +12,21 @@ struct BinarySearchTree<T: Ord + Debug> {
     length: u32,
 }
 
-struct NodeBody<V: Ord + Debug> {
-    v: V,
-    left: Node<V>,
-    right: Node<V>,
+struct NodeBody<T: Ord + Debug> {
+    value: T,
+    left: Node<T>,
+    right: Node<T>,
 }
 
 impl<T: Ord + Debug> NodeBody<T> {
-    fn new(v: T) -> Node<T> {
-        Some(Rc::new(RefCell::new(Self { v, left: None, right: None })))
+    fn new(value: T) -> Node<T> {
+        Some(Rc::new(RefCell::new(Self { value, left: None, right: None })))
     }
 }
 
 impl<T: Ord + Debug> Debug for NodeBody<T> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        let mut s = format!("Tree {{ v: {:?}", self.v);
+        let mut s = format!("Tree {{ v: {:?}", self.value);
 
         if let Some(_) = self.left {
             s.push_str(&format!(", left: {:?}", self.left));
@@ -62,7 +62,7 @@ impl<T: Ord + Debug> BinarySearchTree<T> {
             Some(mut node) => {
                 {
                     let mut inner = node.as_ref().borrow_mut();
-                    if v < inner.v {
+                    if v < inner.value {
                         inner.left = self.insert_support(inner.left.take(), v);
                     } else {
                         inner.right = self.insert_support(inner.right.take(), v);
@@ -103,5 +103,5 @@ fn test_insert() {
     t.insert(22);
     t.insert(23);
 
-    println!("{:?}", t.trace().iter().map(|n| n.as_ref().borrow().v).collect::<Vec<u32>>());
+    println!("{:?}", t.trace().iter().map(|n| n.as_ref().borrow().value).collect::<Vec<u32>>());
 }
